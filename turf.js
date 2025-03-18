@@ -1,45 +1,45 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nearest Airport Finder</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/@turf/turf/turf.min.js"></script>
-    <style>
-        #map { height: 100vh; }
-    </style>
-</head>
-<body>
-    <div id="map"></div>
+// Initialize the map
+var map = L.map('map').setView([20, 0], 2); // World view
 
-    <script>
-        // Initialize the map
-        var map = L.map('map').setView([20, 0], 2);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+// Add a basemap
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+// Load the GeoJSON airport dataset
+fetch('/Users/megantew/Dowloads/airports.geojson')  // Ensure this file is in the same directory
+    .then(response => response.json())
+    .then(airportData => {
+        
+        // Add airport markers to the map
+        var airportLayer = L.geoJSON(airportData, {
+            pointToLayer: function (feature, latlng) {
+                return L.circleMarker(latlng, {
+                    radius: 5,
+                    fillColor: "blue",
+                    color: "#000",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).bindPopup(`<b>${feature.properties.name}</b>`);
+            }
         }).addTo(map);
 
-        // Load the GeoJSON dataset
-        fetch('airports.geojson')
-            .then(response => response.json())
-            .then(data => {
-                var geojsonLayer = L.geoJSON(data).addTo(map);
+        // Handle user clicks to find the nearest airport
+        map.on('click', function (e) {
+            var userPoint = turf.point([e.latlng.lng, e.latlng.lat]);
+            var nearest = turf.nearestPoint(userPoint, airportData);
 
-                map.on('click', function (e) {
-                    var clickedPoint = turf.point([e.latlng.lng, e.latlng.lat]);
-                    var nearest = turf.nearestPoint(clickedPoint, data);
-                    
-                    if (nearest) {
-                        var props = nearest.properties;
-                        L.popup()
-                            .setLatLng([props.latitude, props.longitude])
-                            .setContent(`<b>${props.name}</b><br>${props.city}, ${props.country}`)
-                            .openOn(map);
-                    }
-                });
-            });
-    </script>
-</body>
-</html>
+            if (nearest) {
+                var coords = nearest.geometry.coordinates;
+                var airportName = nearest.properties.name || "Unknown Airport";
+
+                // Show a popup with the nearest airport info
+                L.popup()
+                    .setLatLng([coords[1], coords[0]])  // GeoJSON stores coordinates as [lng, lat]
+                    .setContent(`<b>Nearest Airport:</b> ${airportName}<br>Coordinates: ${coords[1]}, ${coords[0]}`)
+                    .openOn(map);
+            }
+        });
+    })
+    .catch(error => console.error("Error loading GeoJSON:", error));
