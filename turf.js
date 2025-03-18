@@ -7,7 +7,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 // Load the GeoJSON airport dataset
-fetch('/Users/megantew/Dowloads/airports.geojson')  // Ensure this file is in the same directory
+fetch('airports.geojson')  // Ensure this file is in the same directory
     .then(response => response.json())
     .then(airportData => {
         
